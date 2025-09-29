@@ -135,6 +135,7 @@ function Header() {
   const [showTimerModal, setShowTimerModal] = useState(false);
   const [timerActive, setTimerActive] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const searchRef = useRef(null);
   const dropdownContainerRef = useRef(null);
@@ -193,6 +194,19 @@ function Header() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Handle body scroll lock when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [mobileMenuOpen]);
 
   // Timer persistence
   useEffect(() => {
@@ -353,31 +367,53 @@ function Header() {
       navigate(item.path);
     }
     setActiveDropdown(null);
+    setMobileMenuOpen(false);
   };
 
   const navigateToSettings = () => {
     navigate("/Settings");
     setActiveDropdown(null);
+    setMobileMenuOpen(false);
   };
 
   const navigateToLogout = () => {
     navigate("/Logout");
     setActiveDropdown(null);
+    setMobileMenuOpen(false);
   };
 
   return (
     <div ref={dropdownContainerRef}>
+      {/* Mobile menu overlay */}
+      <div 
+        className={`mobile-menu-overlay ${mobileMenuOpen ? 'active' : ''}`}
+        onClick={() => setMobileMenuOpen(false)}
+      />
+
       <header className="headerdashboard-header">
+        {/* Mobile menu button */}
+        <button 
+          className={`mobile-menu-button ${mobileMenuOpen ? 'active' : ''}`}
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          <div className="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </button>
+
         <div className="headerdashboard-brand">
           <button
             className="headerdashboard-brand-button"
             onClick={() => navigate("/Dashboard")}
           >
-            AI-Study-Assistant
+            StudyAI
           </button>
         </div>
 
-        <nav className="navigation-menu">
+        <nav className={`navigation-menu ${mobileMenuOpen ? 'active' : ''}`}>
           {NAVIGATION_ITEMS.map((item) => (
             <div key={item.id} className="nav-item-container">
               {item.standalone ? (
@@ -414,6 +450,7 @@ function Header() {
                           onClick={() => {
                             navigate(dropItem.path);
                             setActiveDropdown(null);
+                            setMobileMenuOpen(false);
                           }}
                         >
                           {dropItem.icon}
@@ -426,6 +463,34 @@ function Header() {
               )}
             </div>
           ))}
+
+          {/* Mobile Profile Section */}
+          <div className="mobile-profile-section">
+            <div className="mobile-profile-info">
+              <div className="mobile-profile-picture">
+                {profilePicture ? (
+                  <img src={profilePicture} alt="Profile" />
+                ) : (
+                  <div className="mobile-profile-initial">
+                    {getInitials(userData?.name || "")}
+                  </div>
+                )}
+              </div>
+              <div className="mobile-profile-name">
+                {userData?.name || "User"}
+              </div>
+            </div>
+            <div className="mobile-profile-actions">
+              <button className="dropdown-item" onClick={navigateToSettings}>
+                <FaUserCog className="dropdown-icon" />
+                <span>Settings</span>
+              </button>
+              <button className="dropdown-item logout" onClick={navigateToLogout}>
+                <FaSignOutAlt className="dropdown-icon" />
+                <span>Logout</span>
+              </button>
+            </div>
+          </div>
         </nav>
 
         <div className="header-right">

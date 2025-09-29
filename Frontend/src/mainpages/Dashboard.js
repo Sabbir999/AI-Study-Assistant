@@ -1,40 +1,30 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import "./Dashboard.css";
-import CrossWordImage from "./crosswordPuzzle.jpg";
 import CountryFlagImage from "./worldmap.jpg";
 import CategorySortingImage from "./sortinggame.jpg";
 import TrueFalseImage from "./factORFiction.jpg";
 import { useNavigate } from "react-router-dom";
 import {
   FaBook,
-  FaPoll,
   FaStickyNote,
-  FaEye,
-  FaCrown,
-  FaChartLine,
-  FaCalendarAlt,
-  FaPlus,
-  FaTrophy,
-  FaFire,
-  FaStar,
-  FaGamepad,
-  FaHistory,
   FaClock,
   FaUser,
-  FaBullseye,
+  FaTrash,
+  FaTrophy,
+  FaHistory,
+  FaGamepad,
+  FaPlus,
 } from "react-icons/fa";
 import {
-  getDatabase,
   ref,
   get,
-  set,
   query,
   orderByChild,
   limitToLast,
+  remove,
 } from "firebase/database";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { database } from "../config/firebase";
-import { v4 as uuidv4 } from "uuid";
 
 // Skeleton Loading Component
 const SkeletonCard = () => (
@@ -69,6 +59,7 @@ function Dashboard() {
   const [dynamicGreeting, setDynamicGreeting] = useState("");
   const [dynamicMessage, setDynamicMessage] = useState("");
   const [messageIndex, setMessageIndex] = useState(0);
+  const [deleteFlashcardId, setDeleteFlashcardId] = useState(null);
 
   const motivationalMessages = useMemo(() => [
     "Knowledge is power! Let's unlock your potential.",
@@ -292,6 +283,34 @@ function Dashboard() {
     } catch (error) {
       console.error("Error fetching leaderboard data:", error);
     }
+  }, []);
+
+  // Delete flashcard handler
+  const handleDeleteFlashcard = useCallback(async (flashcardId, event) => {
+    if (event) {
+      event.stopPropagation(); // Prevent navigation when clicking delete
+    }
+    setDeleteFlashcardId(flashcardId);
+  }, []);
+
+  const confirmDeleteFlashcard = useCallback(async () => {
+    if (!deleteFlashcardId || !user) return;
+
+    try {
+      await remove(ref(database, `users/${user.uid}/flashcard-lists/${deleteFlashcardId}`));
+      
+      // Refresh the flashcard list
+      await fetchRecentUserFlashcards(user.uid);
+      
+      setDeleteFlashcardId(null);
+    } catch (error) {
+      console.error("Error deleting flashcard:", error);
+      alert("Failed to delete flashcard set. Please try again.");
+    }
+  }, [deleteFlashcardId, user, fetchRecentUserFlashcards]);
+
+  const cancelDeleteFlashcard = useCallback(() => {
+    setDeleteFlashcardId(null);
   }, []);
 
   // Performance tracking
@@ -587,7 +606,14 @@ function Dashboard() {
                   className="flashcard-card"
                   onClick={() => handleFlashcardClick(flashcard)}
                 >
-                  <div className="card-badge">Your Set</div>
+                  <button
+                    className="card-delete-button"
+                    onClick={(e) => handleDeleteFlashcard(flashcard.id, e)}
+                    aria-label="Delete flashcard"
+                    title="Delete flashcard set"
+                  >
+                    <FaTrash />
+                  </button>
                   <h4>{flashcard.name}</h4>
                   <p>{flashcard.description}</p>
                   <div className="card-footer">
@@ -631,6 +657,27 @@ function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteFlashcardId && (
+        <div className="delete-modal-overlay" onClick={cancelDeleteFlashcard}>
+          <div className="delete-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="delete-modal-icon">
+              <FaTrash />
+            </div>
+            <h3>Delete Flashcard Set?</h3>
+            <p>Are you sure you want to delete this flashcard set? This action cannot be undone.</p>
+            <div className="delete-modal-actions">
+              <button className="confirm-delete-button" onClick={confirmDeleteFlashcard}>
+                Yes, Delete
+              </button>
+              <button className="cancel-delete-button" onClick={cancelDeleteFlashcard}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
