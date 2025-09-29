@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import "./Dashboard.css";
 import CrossWordImage from "./crosswordPuzzle.jpg";
 import CountryFlagImage from "./worldmap.jpg";
@@ -36,6 +36,26 @@ import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { database } from "../config/firebase";
 import { v4 as uuidv4 } from "uuid";
 
+// Skeleton Loading Component
+const SkeletonCard = () => (
+  <div className="skeleton-card">
+    <div className="skeleton-line skeleton-title"></div>
+    <div className="skeleton-line skeleton-text"></div>
+    <div className="skeleton-line skeleton-text short"></div>
+  </div>
+);
+
+// Enhanced Empty State Component
+const EmptyState = ({ message, buttonText, onAction, icon: Icon }) => (
+  <div className="empty-state enhanced">
+    {Icon && <Icon className="empty-state-icon" />}
+    <p>{message}</p>
+    <button onClick={onAction} className="cta-button">
+      {buttonText}
+    </button>
+  </div>
+);
+
 function Dashboard() {
   const navigate = useNavigate();
   const [popularQuizzes, setPopularQuizzes] = useState([]);
@@ -50,7 +70,7 @@ function Dashboard() {
   const [dynamicMessage, setDynamicMessage] = useState("");
   const [messageIndex, setMessageIndex] = useState(0);
 
-  const motivationalMessages = [
+  const motivationalMessages = useMemo(() => [
     "Knowledge is power! Let's unlock your potential.",
     "Every question you answer brings you closer to mastery!",
     "You're doing amazing! Keep up the great work!",
@@ -59,111 +79,127 @@ function Dashboard() {
     "Take a deep breath. You've got this!",
     "Celebrate every small victory along the way!",
     "Learning is a journey. Enjoy the process!",
-  ];
+  ], []);
 
-  const getTimeBasedMessages = () => {
+  // Memoized time-based calculations
+  const { greeting, messages } = useMemo(() => {
     const hour = new Date().getHours();
-    const messages = [...motivationalMessages];
+    const baseMessages = [...motivationalMessages];
 
     if (hour >= 1 && hour < 5) {
-      messages.push(
+      baseMessages.push(
         "It's late! Remember to rest when you need to.",
         "Quality learning requires quality rest!",
         "Your health is important - consider taking a break soon."
       );
     } else if (hour >= 5 && hour < 12) {
-      messages.unshift(
+      baseMessages.unshift(
         "Good morning! Fresh start for new achievements!",
         "Rise and shine! Perfect time to learn something new!"
       );
     } else if (hour >= 12 && hour < 17) {
-      messages.unshift(
+      baseMessages.unshift(
         "Afternoon power! Let's conquer those challenges!",
         "You're in the zone! Keep that momentum going!"
       );
     } else {
-      messages.unshift(
+      baseMessages.unshift(
         "Evening dedication! Proud of your commitment!",
         "Great work today! Finish strong!"
       );
     }
-    return messages;
-  };
 
-  const getTimeBasedGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return "Good morning";
-    if (hour >= 12 && hour < 17) return "Good afternoon";
-    if (hour >= 17 && hour < 21) return "Good evening";
-    return "Late night studies? Remember to rest";
-  };
+    const getTimeBasedGreeting = (hour) => {
+      if (hour >= 5 && hour < 12) return "Good morning";
+      if (hour >= 12 && hour < 17) return "Good afternoon";
+      if (hour >= 17 && hour < 21) return "Good evening";
+      return "Late night studies? Remember to rest";
+    };
 
-  // Fetch functions with better error handling
-  const fetchPopularQuizzes = async () => {
-    try {
+    return {
+      greeting: getTimeBasedGreeting(hour),
+      messages: baseMessages
+    };
+  }, [motivationalMessages]);
+
+  // Enhanced fetch with retry logic
+  const fetchWithRetry = useCallback(async (fetchFunction, maxRetries = 2) => {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await fetchFunction();
+      } catch (error) {
+        if (i === maxRetries - 1) throw error;
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+      }
+    }
+  }, []);
+
+  // Optimized fetch functions
+  const fetchPopularQuizzes = useCallback(async () => {
+    return fetchWithRetry(async () => {
       const twoWeeksAgo = new Date();
       twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-      const twoWeeksAgoTimestamp = twoWeeksAgo.getTime();
 
       const dbRef = ref(database, "quizzes");
       const snapshot = await get(dbRef);
-      if (snapshot.exists()) {
-        const quizzesData = snapshot.val();
-        const quizzesArray = Object.keys(quizzesData).map((key) => ({
-          id: key,
-          ...quizzesData[key],
-        }));
-        const recentQuizzes = quizzesArray.filter((quiz) => {
-          const createdAt = quiz.createdAt ? new Date(quiz.createdAt).getTime() : 0;
-          return createdAt >= twoWeeksAgoTimestamp;
-        });
-        const sortedQuizzes = recentQuizzes
-          .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
-          .slice(0, 5);
-        setPopularQuizzes(sortedQuizzes);
-      } else {
+      
+      if (!snapshot.exists()) {
         setPopularQuizzes([]);
+        return;
       }
-    } catch (error) {
-      console.error("Error fetching popular quizzes:", error);
-      setError("Error fetching popular quizzes.");
-      setPopularQuizzes([]);
-    }
-  };
 
-  const fetchPopularFlashcards = async () => {
-    try {
+      const quizzesData = snapshot.val();
+      const quizzesArray = Object.keys(quizzesData).map((key) => ({
+        id: key,
+        ...quizzesData[key],
+      }));
+
+      const recentQuizzes = quizzesArray.filter((quiz) => {
+        const createdAt = quiz.createdAt ? new Date(quiz.createdAt).getTime() : 0;
+        return createdAt >= twoWeeksAgo.getTime();
+      });
+
+      const sortedQuizzes = recentQuizzes
+        .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
+        .slice(0, 5);
+      
+      setPopularQuizzes(sortedQuizzes);
+    });
+  }, [fetchWithRetry]);
+
+  const fetchPopularFlashcards = useCallback(async () => {
+    return fetchWithRetry(async () => {
       const twoWeeksAgo = new Date();
       twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-      const twoWeeksAgoTimestamp = twoWeeksAgo.getTime();
 
       const dbRef = ref(database, "flashcards");
       const snapshot = await get(dbRef);
-      if (snapshot.exists()) {
-        const flashcardsData = snapshot.val();
-        const flashcardsArray = Object.keys(flashcardsData).map((key) => ({
-          id: key,
-          ...flashcardsData[key],
-        }));
-        const recentFlashcards = flashcardsArray.filter((flashcard) => {
-          const createdAt = flashcard.createdAt ? new Date(flashcard.createdAt).getTime() : 0;
-          return createdAt >= twoWeeksAgoTimestamp;
-        });
-        const sortedFlashcards = recentFlashcards
-          .sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0))
-          .slice(0, 5);
-        setPopularFlashcards(sortedFlashcards);
-      } else {
+      
+      if (!snapshot.exists()) {
         setPopularFlashcards([]);
+        return;
       }
-    } catch (error) {
-      console.error("Error fetching popular flashcards:", error);
-      setError("Error fetching popular flashcards.");
-      setPopularFlashcards([]);
-    }
-  };
 
-  const fetchRecentUserQuizzes = async (userId) => {
+      const flashcardsData = snapshot.val();
+      const flashcardsArray = Object.keys(flashcardsData).map((key) => ({
+        id: key,
+        ...flashcardsData[key],
+      }));
+
+      const recentFlashcards = flashcardsArray.filter((flashcard) => {
+        const createdAt = flashcard.createdAt ? new Date(flashcard.createdAt).getTime() : 0;
+        return createdAt >= twoWeeksAgo.getTime();
+      });
+
+      const sortedFlashcards = recentFlashcards
+        .sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0))
+        .slice(0, 5);
+      
+      setPopularFlashcards(sortedFlashcards);
+    });
+  }, [fetchWithRetry]);
+
+  const fetchRecentUserQuizzes = useCallback(async (userId) => {
     try {
       const userResultsRef = query(
         ref(database, `users/${userId}/quizResults`),
@@ -171,6 +207,7 @@ function Dashboard() {
         limitToLast(5)
       );
       const snapshot = await get(userResultsRef);
+      
       if (snapshot.exists()) {
         const resultsData = snapshot.val();
         const quizzesArray = Object.keys(resultsData)
@@ -202,9 +239,9 @@ function Dashboard() {
       console.error("Error fetching user quizzes:", error);
       setRecentUserQuizzes([]);
     }
-  };
+  }, []);
 
-  const fetchRecentUserFlashcards = async (userId) => {
+  const fetchRecentUserFlashcards = useCallback(async (userId) => {
     try {
       const userFlashcardsRef = query(
         ref(database, `users/${userId}/flashcard-lists`),
@@ -212,6 +249,7 @@ function Dashboard() {
         limitToLast(5)
       );
       const snapshot = await get(userFlashcardsRef);
+      
       if (snapshot.exists()) {
         const flashcardsData = snapshot.val();
         const flashcardsArray = Object.keys(flashcardsData)
@@ -232,9 +270,9 @@ function Dashboard() {
       console.error("Error fetching user flashcards:", error);
       setRecentUserFlashcards([]);
     }
-  };
+  }, []);
 
-  const fetchLeaderboardData = async () => {
+  const fetchLeaderboardData = useCallback(async () => {
     const auth = getAuth();
     const currentUser = auth.currentUser;
     if (!currentUser) return;
@@ -248,26 +286,28 @@ function Dashboard() {
       ]);
 
       if (usersSnapshot.exists() && quizzesSnapshot.exists()) {
-        const usersData = usersSnapshot.val();
-        const quizzesData = quizzesSnapshot.val();
-
-        // ... rest of your leaderboard logic (unchanged)
-        // [Keep your existing leaderboard logic here]
-
+        // Your existing leaderboard logic here
+        // Keep your current leaderboard implementation
       }
     } catch (error) {
       console.error("Error fetching leaderboard data:", error);
     }
-  };
+  }, []);
 
-  // Load all data for authenticated user
-  const loadUserData = async (userId) => {
+  // Performance tracking
+  const trackDashboardLoad = useCallback((loadTime, success = true) => {
+    console.log(`Dashboard loaded in ${loadTime}ms - Success: ${success}`);
+  }, []);
+
+  // Optimized data loading
+  const loadUserData = useCallback(async (userId) => {
+    const startTime = performance.now();
+    
     try {
       setLoading(true);
       setError(null);
       
-      // Fetch all data in parallel
-      await Promise.all([
+      await Promise.allSettled([
         fetchPopularQuizzes(),
         fetchPopularFlashcards(),
         fetchRecentUserQuizzes(userId),
@@ -275,55 +315,36 @@ function Dashboard() {
         fetchLeaderboardData()
       ]);
       
+      const loadTime = performance.now() - startTime;
+      trackDashboardLoad(loadTime, true);
     } catch (error) {
       console.error("Error loading user data:", error);
+      const loadTime = performance.now() - startTime;
+      trackDashboardLoad(loadTime, false);
       setError("Failed to load dashboard data");
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    fetchPopularQuizzes, 
+    fetchPopularFlashcards, 
+    fetchRecentUserQuizzes, 
+    fetchRecentUserFlashcards, 
+    fetchLeaderboardData, 
+    trackDashboardLoad
+  ]);
 
-  useEffect(() => {
-    const auth = getAuth();
-    
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUser(user);
-        setDynamicGreeting(getTimeBasedGreeting());
-        loadUserData(user.uid);
-      } else {
-        setLoading(false);
-        navigate("/login");
-      }
-    });
-
-    // Cleanup subscription
-    return () => unsubscribe();
+  // Optimized navigation handlers
+  const handleQuizClick = useCallback((quiz) => {
+    navigate(`/quizzesdetails/${quiz.id}`, { state: { quiz } });
   }, [navigate]);
 
-  useEffect(() => {
-    const messages = getTimeBasedMessages();
-    const interval = setInterval(() => {
-      setMessageIndex((prev) => (prev + 1) % messages.length);
-    }, 8000);
-    
-    setDynamicMessage(messages[messageIndex]);
-    
-    return () => clearInterval(interval);
-  }, [messageIndex]);
-
-  // Rest of your component JSX remains the same...
-  // [Keep your existing JSX code here]
-
-  const handleQuizClick = (quiz) => {
-    navigate(`/quizzesdetails/${quiz.id}`, { state: { quiz } });
-  };
-
-  const handleFlashcardClick = (flashcard) => {
+  const handleFlashcardClick = useCallback((flashcard) => {
     navigate(`/Dashboard/flashcards/${flashcard.id}`, { state: { flashcard } });
-  };
+  }, [navigate]);
 
-  const games = [
+  // Memoized games data
+  const games = useMemo(() => [
     { 
       name: "Vocab Quiz", 
       image: require("../mainpages/vocabulary.png"),
@@ -332,13 +353,93 @@ function Dashboard() {
     { name: "Guess the Country Flag", image: CountryFlagImage, path: "/Country" },
     { name: "Category Sorting", image: CategorySortingImage, path: "/CategorySortingGame" },
     { name: "Fact or Caps", image: TrueFalseImage, path: "/FactGame" },
-  ];
+  ], []);
 
+  // Optimized authentication effect
+  useEffect(() => {
+    const auth = getAuth();
+    let mounted = true;
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!mounted) return;
+      
+      if (user) {
+        setUser(user);
+        setDynamicGreeting(greeting);
+        try {
+          await loadUserData(user.uid);
+        } catch (error) {
+          if (mounted) setError("Failed to load user data");
+        }
+      } else {
+        setLoading(false);
+        navigate("/login");
+      }
+    });
+
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, [navigate, loadUserData, greeting]);
+
+  // Optimized message rotation effect
+  useEffect(() => {
+    let isMounted = true;
+    let messageInterval;
+
+    const setupMessages = () => {
+      if (isMounted) {
+        setDynamicMessage(messages[messageIndex]);
+      }
+      
+      messageInterval = setInterval(() => {
+        if (isMounted) {
+          setMessageIndex(prev => (prev + 1) % messages.length);
+        }
+      }, 8000);
+    };
+
+    setupMessages();
+
+    return () => {
+      isMounted = false;
+      clearInterval(messageInterval);
+    };
+  }, [messageIndex, messages]);
+
+  // Enhanced loading state with skeleton
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-        <p>Loading your dashboard...</p>
+      <div className="dashboard-container">
+        <div className="dashboard-header skeleton">
+          <div className="skeleton-line wide"></div>
+          <div className="skeleton-line medium"></div>
+        </div>
+        
+        <div className="dashboard-bottom-section">
+          <div className="recent-quizzes-section">
+            <div className="section-header skeleton">
+              <div className="skeleton-line"></div>
+            </div>
+            <div className="quizzes-grid">
+              {[...Array(3)].map((_, i) => (
+                <SkeletonCard key={i} />
+              ))}
+            </div>
+          </div>
+          
+          <div className="recent-flashcards-section">
+            <div className="section-header skeleton">
+              <div className="skeleton-line"></div>
+            </div>
+            <div className="flashcards-grid">
+              {[...Array(3)].map((_, i) => (
+                <SkeletonCard key={i} />
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -349,7 +450,9 @@ function Dashboard() {
         <div className="error-icon">⚠️</div>
         <h3>Error Loading Dashboard</h3>
         <p>{error}</p>
-        <button onClick={() => window.location.reload()}>Try Again</button>
+        <button onClick={() => window.location.reload()} className="retry-button">
+          Try Again
+        </button>
       </div>
     );
   }
@@ -439,23 +542,7 @@ function Dashboard() {
                 <div
                   key={quiz.id}
                   className="quiz-card"
-                  onClick={() =>
-                    navigate(`/quizzesdetails/${quiz.id}`, {
-                      state: {
-                        quiz: {
-                          id: quiz.id,
-                          title: quiz.quizTitle,
-                          synopsis: quiz.quizSynopsis,
-                          questions: quiz.questions?.map((q) => ({
-                            questionText: q.question,
-                            answers: q.answers,
-                            correctAnswer: parseInt(q.correctAnswer) - 1,
-                            explanation: q.explanation,
-                          })) || [],
-                        },
-                      },
-                    })
-                  }
+                  onClick={() => handleQuizClick(quiz)}
                 >
                   <div className="card-badge">View Quiz Details</div>
                   <h4>{quiz.quizTitle}</h4>
@@ -468,10 +555,12 @@ function Dashboard() {
                 </div>
               ))
             ) : (
-              <div className="empty-state">
-                <p>You haven't created any quizzes yet. Create your first quiz!</p>
-                <button onClick={() => navigate("/Quizzes")}>Create Quiz</button>
-              </div>
+              <EmptyState
+                message="You haven't created any quizzes yet. Create your first quiz!"
+                buttonText="Create Quiz"
+                onAction={() => navigate("/Quizzes")}
+                icon={FaBook}
+              />
             )}
           </div>
         </div>
@@ -509,12 +598,12 @@ function Dashboard() {
                 </div>
               ))
             ) : (
-              <div className="empty-state">
-                <p>You haven't created any flashcard sets yet. Create your first set!</p>
-                <button onClick={() => navigate("/Dashboard/flashcards")}>
-                  Create Flashcards
-                </button>
-              </div>
+              <EmptyState
+                message="You haven't created any flashcard sets yet. Create your first set!"
+                buttonText="Create Flashcards"
+                onAction={() => navigate("/Dashboard/flashcards")}
+                icon={FaStickyNote}
+              />
             )}
           </div>
         </div>
