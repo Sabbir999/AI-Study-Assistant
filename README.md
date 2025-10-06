@@ -1,6 +1,6 @@
 # AI-Assisted Study Companion 
 
-Welcome to the AI-Assisted Study Companion, a web-based platform designed to make studying more effective, personalized, and fun! Designed for students, educators, and lifelong learners.
+Welcome to the StudyAI, a web-based platform designed to make studying more effective, personalized, and fun! Designed for students, educators, and lifelong learners.
 
 ## ✨ Features
 
