@@ -1,67 +1,43 @@
-import { useLocation } from "react-router-dom";
-import { FaCheck, FaTimes, FaInfoCircle } from "react-icons/fa"; // import icons
-import "./QuizDetails.css"; // import the css file  
-
+import { useLocation, useNavigate } from "react-router-dom";
+import { FaCheck, FaTimes, FaInfoCircle, FaArrowLeft } from "react-icons/fa";
+import "./QuizDetails.css";
 
 export default function QuizDetails() {
-
-  const { state } = useLocation(); // get the state from the page before
-
-  // the quiz data is gotten from the state
+  const { state } = useLocation();
+  const navigate = useNavigate();
   const quiz = state?.quiz || state?.quizData;
 
-
-  // If there is no quiz data found in the location state, the error message should show
+  // If there is no quiz data found in the location state, show error message
   if (!quiz) {
     return (
       <div className="quiz-error">
-        <h2>Quiz is not Found</h2>
-        <p>The quiz could not be loaded.</p>{" "}
-        {/* This will be the error message */}
-        <div>
-          {/* This is the button to navigate back to previous page */}
-          <button
-            onClick={() => {
-              window.history.back(); // go the previous page
-            }}
-            className="quizdetailback-button"
-          >
-            <svg //this is the back button design
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{ marginRight: "8px" }}
-            >
-              <path d="M11 17l-5-5 5-5M18 17l-5-5 5-5" />
-            </svg>
-            Back
-          </button>
-        </div>
+        <h2>Quiz Not Found</h2>
+        <p>The quiz could not be loaded. Please try again.</p>
+        <button
+          onClick={() => navigate(-1)}
+          className="quizdetailback-button"
+        >
+          <FaArrowLeft />
+          Go Back
+        </button>
       </div>
     );
   }
 
-  // check for the correct answer
-  const theCorrectAnswer = (question) => {
-    // get the correctAnswer from the database
+  // Function to determine the correct answer index
+  const getCorrectAnswerIndex = (question) => {
     const rawValue = question.correctAnswer;
 
-    // the answer from the database it is a number but in this format "1" not 1
+    // If it's already a number and valid
     if (typeof rawValue === "number" && question.answers[rawValue]) {
       return rawValue;
     }
 
-    // converting the number from "1" to  1
+    // Convert string to number
     const numericValue =
       typeof rawValue === "string" ? parseInt(rawValue, 10) : rawValue;
 
-    // the answer is like this 1 = means first is the answer, 2 = means second is the answer and it goes on
+    // Handle 1-based indexing (1 = first answer, 2 = second answer, etc.)
     if (numericValue > 0 && question.answers[numericValue - 1]) {
       return numericValue - 1;
     }
@@ -69,52 +45,33 @@ export default function QuizDetails() {
     return 0;
   };
 
-  // The quiz details
   return (
     <div className="quiz-detail-container">
-      {/* This is the button to navigate back to previous page */}
-      <span>
-        <button
-          onClick={() => {
-            window.history.back(); // go the previous page
-          }}
-          className="quizdetailback-button"
-        >
-          <svg //this is the back button design
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{ marginRight: "8px" }}
-          >
-            <path d="M11 17l-5-5 5-5M18 17l-5-5 5-5" />
-          </svg>
-          Back
-        </button>
-      </span>
-      {/* The quiz header has the title and a synopsis gotten from the database */}
+      {/* Back Button */}
+      <button
+        onClick={() => navigate(-1)}
+        className="quizdetailback-button"
+      >
+        <FaArrowLeft />
+        Back
+      </button>
+
+      {/* Quiz Header */}
       <div className="quiz-detail-header">
         <h1>{quiz.title}</h1>
-        {/* the synopsis is also displayed if it is saved in the database */}
         {quiz.synopsis && (
           <p className="quiz-detail-synopsis">
-            <FaInfoCircle className="info-icon" /> {quiz.synopsis}
+            <FaInfoCircle className="info-icon" />
+            <span>{quiz.synopsis}</span>
           </p>
         )}
       </div>
 
-      {/* The questions are displayed */}
+      {/* Questions Container */}
       <div className="quiz-detail-questions-container">
         {quiz.questions?.length > 0 ? (
-          // show each question in the quiz
           quiz.questions.map((question, qIndex) => {
-            // show the correct answer for the question
-            const correctAnswer = theCorrectAnswer(question);
+            const correctAnswerIndex = getCorrectAnswerIndex(question);
 
             return (
               <div key={qIndex} className="quiz-detail-question-card">
@@ -122,11 +79,10 @@ export default function QuizDetails() {
                   Question {qIndex + 1}: {question.questionText}
                 </h3>
 
-                {/* also show the answer options for the quiz question */}
+                {/* Answer Options */}
                 <ul className="quiz-detail-answers-list">
                   {question.answers?.map((answer, aIndex) => {
-                    // check for the correct answer
-                    const isCorrect = aIndex === correctAnswer;
+                    const isCorrect = aIndex === correctAnswerIndex;
                     return (
                       <li
                         key={aIndex}
@@ -136,12 +92,11 @@ export default function QuizDetails() {
                       >
                         <div className="quiz-detail-answer-marker">
                           {isCorrect ? (
-                            <FaCheck className="icon quiz-detail-correct-icon" />
+                            <FaCheck className="quiz-detail-correct-icon" />
                           ) : (
-                            <FaTimes className="icon quiz-detail-incorrect-icon" />
+                            <FaTimes className="quiz-detail-incorrect-icon" />
                           )}
                         </div>
-                        {/* The answer */}
                         <div className="quiz-detail-answer-content">
                           {answer}
                         </div>
@@ -150,7 +105,7 @@ export default function QuizDetails() {
                   })}
                 </ul>
 
-                {/* the explanation to the correctAnswer will be also displayed with the questions */}
+                {/* Explanation */}
                 {question.explanation && (
                   <div className="quiz-detail-explanation-box">
                     <div className="quiz-detail-explanation-header">
@@ -163,9 +118,8 @@ export default function QuizDetails() {
             );
           })
         ) : (
-          // if the quizzes do not have questions
           <div className="quiz-detail-no-questions">
-            This quiz do not have questions.
+            <p>This quiz does not have any questions yet.</p>
           </div>
         )}
       </div>

@@ -1,0 +1,553 @@
+/* Modern Quiz Notes Page */
+.quiz-notes-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 2rem;
+  }
+  
+  .quiz-notes-container {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  
+  /* Header */
+  .quiz-notes-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .quiz-notes-back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+  }
+  
+  .quiz-notes-back-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  }
+  
+  .quiz-notes-header h1 {
+    color: white;
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .add-note-btn {
+    padding: 0.75rem 1.5rem;
+    background: white;
+    color: #667eea;
+    border: none;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  }
+  
+  .add-note-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    background: #f7fafc;
+  }
+  
+  /* Add Note Panel */
+  .add-note-panel {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 2rem;
+    border-radius: 24px;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    animation: slideDown 0.3s ease;
+  }
+  
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .note-title-input {
+    width: 100%;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 16px;
+    background: white;
+    color: #1a202c;
+    font-size: 1.1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+  }
+  
+  .note-title-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+  
+  .note-title-input::placeholder {
+    color: #a0aec0;
+  }
+  
+  .quill-container {
+    position: relative;
+    margin-bottom: 1rem;
+  }
+  
+  .quill-container .ql-toolbar {
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-bottom: none;
+    border-radius: 16px 16px 0 0;
+    padding: 1rem;
+  }
+  
+  .quill-container .ql-container {
+    height: 250px;
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-top: none;
+    border-radius: 0 0 16px 16px;
+    font-size: 1rem;
+    color: #2d3748;
+  }
+  
+  .quill-container .ql-editor {
+    padding: 1.5rem;
+    min-height: 200px;
+  }
+  
+  .quill-container .ql-editor.ql-blank::before {
+    color: #a0aec0;
+    font-style: normal;
+  }
+  
+  .validation-textarea {
+    position: absolute;
+    opacity: 0;
+    height: 0;
+    pointer-events: none;
+    z-index: -1;
+  }
+  
+  /* Note Actions */
+  .note-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  
+  .cancel-note-btn,
+  .save-note-btn {
+    padding: 0.75rem 2rem;
+    border: none;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .cancel-note-btn {
+    background: #e2e8f0;
+    color: #4a5568;
+  }
+  
+  .cancel-note-btn:hover {
+    background: #cbd5e0;
+    transform: translateY(-2px);
+  }
+  
+  .save-note-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  }
+  
+  .save-note-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  }
+  
+  /* Notes List */
+  .quiz-notes-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .quiz-note-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 24px;
+    padding: 1.5rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    animation: fadeIn 0.5s ease;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .quiz-note-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
+  }
+  
+  .note-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 1rem;
+  }
+  
+  .note-title {
+    color: #1a202c;
+    font-size: 1.25rem;
+    font-weight: 700;
+    flex: 1;
+    word-break: break-word;
+  }
+  
+  .note-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+  
+  .edit-note-btn,
+  .delete-note-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+  }
+  
+  .edit-note-btn {
+    background: #e6f2ff;
+    color: #4299e1;
+  }
+  
+  .edit-note-btn:hover {
+    background: #4299e1;
+    color: white;
+    transform: scale(1.1);
+  }
+  
+  .delete-note-btn {
+    background: #fee;
+    color: #f56565;
+    font-size: 1.2rem;
+  }
+  
+  .delete-note-btn:hover {
+    background: #f56565;
+    color: white;
+    transform: scale(1.1);
+  }
+  
+  .note-content {
+    flex: 1;
+  }
+  
+  .note-content .ql-container {
+    border: none;
+    background: transparent;
+  }
+  
+  .note-content .ql-editor {
+    padding: 0;
+    color: #4a5568;
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+  
+  /* Edit Modal */
+  .edit-note-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+    animation: fadeInModal 0.3s ease;
+  }
+  
+  @keyframes fadeInModal {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  .edit-note-content {
+    background: white;
+    border-radius: 24px;
+    padding: 2rem;
+    max-width: 700px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+  }
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(50px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .edit-note-content h3 {
+    color: #1a202c;
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+  }
+  
+  /* Delete Modal */
+  .delete-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+    animation: fadeInModal 0.3s ease;
+  }
+  
+  .delete-modal-content {
+    background: white;
+    border-radius: 24px;
+    padding: 2rem;
+    max-width: 450px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+  }
+  
+  .delete-modal-content h3 {
+    color: #1a202c;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+  
+  .delete-modal-content p {
+    color: #4a5568;
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+  }
+  
+  .delete-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+  }
+  
+  .cancel-delete-btn,
+  .confirm-delete-btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .cancel-delete-btn {
+    background: #e2e8f0;
+    color: #4a5568;
+  }
+  
+  .cancel-delete-btn:hover {
+    background: #cbd5e0;
+    transform: translateY(-2px);
+  }
+  
+  .confirm-delete-btn {
+    background: linear-gradient(135deg, #f56565 0%, #c53030 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(245, 101, 101, 0.3);
+  }
+  
+  .confirm-delete-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(245, 101, 101, 0.4);
+  }
+  
+  /* Loading and Error States */
+  .loading-message,
+  .error-message,
+  .no-notes-message {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 24px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  }
+  
+  .loading-message {
+    color: #4a5568;
+    font-size: 1.2rem;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
+  }
+  
+  .error-message {
+    color: #f56565;
+    font-size: 1.2rem;
+  }
+  
+  .no-notes-message {
+    color: #4a5568;
+    font-size: 1.2rem;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .quiz-notes-page {
+      padding: 1rem;
+    }
+  
+    .quiz-notes-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  
+    .quiz-notes-header h1 {
+      font-size: 1.5rem;
+      white-space: normal;
+    }
+  
+    .header-left {
+      width: 100%;
+    }
+  
+    .add-note-btn {
+      width: 100%;
+    }
+  
+    .quiz-notes-list {
+      grid-template-columns: 1fr;
+    }
+  
+    .add-note-panel {
+      padding: 1.5rem;
+    }
+  
+    .edit-note-content {
+      padding: 1.5rem;
+    }
+  
+    .quill-container .ql-container {
+      height: 200px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .quiz-notes-header h1 {
+      font-size: 1.25rem;
+    }
+  
+    .quiz-notes-back-button {
+      padding: 0.625rem 1.25rem;
+      font-size: 0.9rem;
+    }
+  
+    .add-note-btn {
+      padding: 0.625rem 1.25rem;
+      font-size: 0.9rem;
+    }
+  
+    .note-title {
+      font-size: 1.1rem;
+    }
+  }
