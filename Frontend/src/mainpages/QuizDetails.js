@@ -7,6 +7,10 @@ export default function QuizDetails() {
   const navigate = useNavigate();
   const quiz = state?.quiz || state?.quizData;
 
+  // Debug: Check what data we're receiving
+  console.log('Quiz data received:', quiz);
+  console.log('First question:', quiz?.questions?.[0]);
+
   // If there is no quiz data found in the location state, show error message
   if (!quiz) {
     return (
@@ -58,7 +62,7 @@ export default function QuizDetails() {
 
       {/* Quiz Header */}
       <div className="quiz-detail-header">
-        <h1>{quiz.title}</h1>
+        <h1>{quiz.title || quiz.quizTitle || "Untitled Quiz"}</h1>
         {quiz.synopsis && (
           <p className="quiz-detail-synopsis">
             <FaInfoCircle className="info-icon" />
@@ -76,12 +80,12 @@ export default function QuizDetails() {
             return (
               <div key={qIndex} className="quiz-detail-question-card">
                 <h3 className="quiz-detail-question-title">
-                  Question {qIndex + 1}: {question.questionText}
+                  Question {qIndex + 1}: {question.questionText || question.question || "Question text not available"}
                 </h3>
 
                 {/* Answer Options */}
                 <ul className="quiz-detail-answers-list">
-                  {question.answers?.map((answer, aIndex) => {
+                  {(question.answers || question.options || []).map((answer, aIndex) => {
                     const isCorrect = aIndex === correctAnswerIndex;
                     return (
                       <li
